@@ -9,6 +9,6 @@ type User struct {
 	Token     string `json:"token"`
 }
 
-type ResponseResult struct {
-	Result string `json:"result"`
+type ErrorResponse struct {
+	Error string `json:"error"`
 }

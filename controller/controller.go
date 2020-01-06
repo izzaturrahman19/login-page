@@ -19,15 +19,18 @@ import (
 func RegisterHandler(c echo.Context) error {
 
 	user := new(model.User)
+	galat := new(model.ErrorResponse)
 	err := c.Bind(user)
 	if err != nil {
 		return apierror.NewError(http.StatusUnprocessableEntity, "Failed to get signin data. Probably content-type is not match with actual body type", err)
+		galat.Error = "Failed to get signin data. Probably content-type is not match with actual body type"
 	}
 
 	collection, err := db.GetDbCollection()
 
 	if err != nil {
 		return apierror.NewError(http.StatusUnprocessableEntity, "Failed to get database", err)
+		galat.Error = "Failed to get database"
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 5)
@@ -35,6 +38,7 @@ func RegisterHandler(c echo.Context) error {
 	_, err = collection.Collection("users").InsertOne(context.Background(), user)
 	   if err != nil {
 			return apierror.NewError(http.StatusUnprocessableEntity, "Failed to insert to database", err)
+			galat.Error = "Failed to insert to database"
 		}
 
 	return c.JSON(http.StatusCreated, user)
@@ -42,10 +46,12 @@ func RegisterHandler(c echo.Context) error {
 
 func LoginHandler(c echo.Context) error {
 
- 	user := new(model.User)
+	user := new(model.User)
+	galat := new(model.ErrorResponse)
  	err := c.Bind(user)
 	if err != nil {
 		return apierror.NewError(http.StatusUnprocessableEntity, "Failed to get signin data. Probably content-type is not match with actual body type", err)
+		galat.Error = "Failed to get signin data. Probably content-type is not match with actual body type"
 	}
 
 	collection, err := db.GetDbCollection()
@@ -59,13 +65,15 @@ func LoginHandler(c echo.Context) error {
 
 	fmt.Println("result : ", result)
 	if err != nil {
-		return apierror.NewError(http.StatusUnprocessableEntity, "collection not found", err)
+		return apierror.NewError(http.StatusUnprocessableEntity, "Collection not found", err)
+		galat.Error = "Collection not found"
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(user.Password))
 
 	if err != nil {
-		return apierror.NewError(http.StatusUnprocessableEntity, "password missmatch", err)
+		return apierror.NewError(http.StatusUnprocessableEntity, "Password missmatch", err)
+		galat.Error = "Password missmatch"
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -77,7 +85,8 @@ func LoginHandler(c echo.Context) error {
 	tokenString, err := token.SignedString([]byte("secret"))
 
 	if err != nil {
-		return apierror.NewError(http.StatusUnprocessableEntity, "create token failed", err)
+		return apierror.NewError(http.StatusUnprocessableEntity, "Create token failed", err)
+		galat.Error = "Create token failed"
 	}
 
 	result.Token = tokenString
@@ -88,10 +97,12 @@ func LoginHandler(c echo.Context) error {
 
 func ProfileHandler(c echo.Context) error {
 
+	galat := new(model.ErrorResponse)
 	tokenString := c.Request().Header.Get("Authorization")
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method")
+			galat.Error = "Unexpected signing method"
 		}
 		return []byte("secret"), nil
 	})
@@ -103,6 +114,7 @@ func ProfileHandler(c echo.Context) error {
 
 		return c.JSON(http.StatusOK, result)
 	} else {
+		galat.Error = "Failed to get data"
 		return apierror.NewError(http.StatusUnprocessableEntity, "Failed to get data", err)
 	}
 
