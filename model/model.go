@@ -6,9 +6,7 @@ type User struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 	Password  string `json:"password"`
-	Token     string `json:"token"`
 }
-
-type ErrorResponse struct {
-	Error string `json:"error"`
+type Token struct {
+	Token     string `json:"token"`
 }
